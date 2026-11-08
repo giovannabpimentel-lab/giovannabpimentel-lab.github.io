@@ -29,8 +29,9 @@ geração.
   não controle de acesso. Nada aqui é sigiloso — a tabela resume um artigo publicado na Nature.
 - **Identidade visual** igual à do deck do seminário (degradê menta/lilás, Inter), para quem
   escaneia o QR reconhecer que chegou ao lugar certo.
-- **Cartões no celular, duas colunas no desktop.** Sete colunas de texto corrido não cabem num
-  telefone, e o QR vai ser lido no telefone.
+- **Tabela de verdade**, a pedido da Giovanna: `<table>` com cabeçalho fixo no topo e a coluna
+  do nome fixa na horizontal. Seis colunas de texto corrido não cabem na largura de um telefone,
+  e o QR vai ser lido no telefone, então lá ela rola para o lado com o nome sempre à vista.
 
 ## Por fazer
 
