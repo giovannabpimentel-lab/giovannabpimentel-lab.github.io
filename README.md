@@ -4,10 +4,14 @@ Site pessoal de Giovanna Pimentel, servido pelo GitHub Pages.
 
 ## O que tem aqui
 
-- `mecanismos/` — tabela-resumo dos mecanismos de ação de antibióticos naturais, destino do
-  QR code do seminário da disciplina Tópicos em Avaliação Antimicrobiana de Produtos Naturais
-  (PPGQ/FURB, 12/11/2026). Página única, sem dependência externa, com filtro de busca.
-  **Gerada por script, não editada à mão:** a fonte é `fontes-tabela.xlsx`.
+- `index.html` — placeholder da raiz. Existe para que o Jekyll não publique este README como
+  página inicial do site, o que aconteceu no primeiro deploy e expôs, numa página indexável, o
+  caminho que era para circular só por QR code.
+- A pasta da tabela-resumo dos mecanismos de ação de antibióticos naturais, destino do QR code
+  do seminário (PPGQ/FURB, 12/11/2026). Página única, sem dependência externa, com filtro de
+  busca. **Gerada por script, não editada à mão:** a fonte é `fontes-tabela.xlsx`.
+- `.nojekyll` — desliga o Jekyll. O site é HTML pronto; não há o que processar, e com o Jekyll
+  ligado qualquer `.md` solto no repositório vira página pública.
 
 ## Refazer a página depois de mexer na planilha
 
@@ -30,5 +34,6 @@ geração.
 
 ## Por fazer
 
-- Página de currículo na raiz. Hoje `/` devolve 404; só `/mecanismos/` existe.
+- Página de currículo na raiz, no lugar do placeholder. Quando entrar, tirar o `noindex` do
+  `index.html`.
 - Conteúdo de pesquisa (scripts de R das análises estatísticas).
