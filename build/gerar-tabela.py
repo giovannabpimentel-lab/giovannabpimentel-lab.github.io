@@ -1,9 +1,11 @@
 # Gera mecanismos/index.html a partir da planilha da Giovanna.
 #
 # A página é o destino do QR code do seminário da FURB (12/11/2026): abre no celular, sem login
-# e sem baixar nada. Por isso duas decisões: tabela em cartões no celular e em grade no desktop
-# (sete colunas de texto corrido não cabem num telefone), e `noindex`, porque o combinado é que
-# só chegue quem tem o link.
+# e sem baixar nada.
+#
+# A Giovanna pediu TABELA, e é tabela de verdade: um <table> com cabeçalho fixo e a coluna do
+# nome fixa na horizontal. Num telefone, sete colunas de texto corrido não cabem na largura, e a
+# saída não é descaracterizar a tabela, é deixá-la rolar para o lado com o nome sempre à vista.
 #
 # Uso: uv run --with openpyxl python build/gerar-tabela.py <planilha.xlsx>
 import html
@@ -22,12 +24,11 @@ linhas = [list(r) for r in aba.iter_rows(values_only=True) if any(c is not None 
 cabecalho = [str(c or "").strip() for c in linhas[0]]
 dados = linhas[1:]
 
-# A última coluna é um índice numérico para a aba de referências; a fonte é uma só e vai no rodapé.
+# A última coluna é um índice para a aba de referências; a fonte é uma só e vai no rodapé.
 if cabecalho and cabecalho[-1].lower().startswith("fonte"):
     cabecalho = cabecalho[:-1]
     dados = [linha[:-1] for linha in dados]
 
-campos = cabecalho[1:]          # o primeiro é o nome, que vira título do cartão
 e = html.escape
 
 
@@ -35,16 +36,14 @@ def celula(valor):
     return e(str(valor).strip()) if valor is not None else "—"
 
 
-cartoes = []
+cabecalhos = "".join(f"<th scope='col'>{e(c)}</th>" for c in cabecalho)
+corpo = []
 for linha in dados:
-    nome = celula(linha[0])
-    itens = "".join(
-        f'<div class="campo"><dt>{e(rotulo)}</dt><dd>{celula(valor)}</dd></div>'
-        for rotulo, valor in zip(campos, linha[1:])
-    )
     busca = " ".join(celula(v) for v in linha).lower()
-    cartoes.append(f'<article class="ficha" data-busca="{e(busca)}">'
-                   f'<h2>{nome}</h2><dl>{itens}</dl></article>')
+    celulas = f"<th scope='row'>{celula(linha[0])}</th>" + "".join(
+        f"<td>{celula(v)}</td>" for v in linha[1:]
+    )
+    corpo.append(f"<tr data-busca=\"{e(busca)}\">{celulas}</tr>")
 
 pagina = f"""<!doctype html>
 <html lang="pt-BR">
@@ -58,7 +57,7 @@ pagina = f"""<!doctype html>
   --menta: #DCFEEE; --agua: #E4FAFF; --lilas-claro: #E3DDFF;
   --turquesa: #28D0D3; --lilas: #8992E1;
   --tinta: #0B0B0C; --tinta-suave: #3C3F45; --tinta-fraca: #6B7079;
-  --papel: #FFFFFF;
+  --papel: #FFFFFF; --risca: #E7E9EE; --zebra: #FAFBFC;
 }}
 * {{ box-sizing: border-box; }}
 body {{
@@ -66,56 +65,72 @@ body {{
   background: linear-gradient(140deg, var(--menta), var(--agua) 45%, var(--lilas-claro));
   background-attachment: fixed;
   color: var(--tinta);
-  font: 400 17px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font: 400 16px/1.5 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }}
-.envelope {{ max-width: 1180px; margin: 0 auto; }}
-header {{ padding: 44px 0 20px; }}
-h1 {{ margin: 0 0 10px; font-size: clamp(28px, 5vw, 44px); line-height: 1.12; letter-spacing: -.02em; }}
-.linhafina {{ margin: 0; color: var(--tinta-suave); font-size: clamp(15px, 2.4vw, 19px); }}
+.envelope {{ max-width: 1680px; margin: 0 auto; }}
+header {{ padding: 40px 0 16px; }}
+h1 {{ margin: 0 0 10px; font-size: clamp(26px, 4.6vw, 42px); line-height: 1.12; letter-spacing: -.02em; }}
+.linhafina {{ margin: 0; max-width: 70ch; color: var(--tinta-suave); font-size: clamp(15px, 2.2vw, 18px); }}
 .procura {{
-  width: 100%; margin: 26px 0 10px; padding: 14px 18px;
+  width: 100%; max-width: 560px; margin: 24px 0 8px; padding: 13px 18px;
   border: 2px solid transparent; border-radius: 14px;
   background: var(--papel); color: inherit; font: inherit;
   box-shadow: 0 2px 18px #0b0b0c12;
 }}
 .procura:focus {{ outline: none; border-color: var(--turquesa); }}
-.conta {{ margin: 0 0 20px; color: var(--tinta-fraca); font-size: 15px; }}
-.fichas {{ display: grid; gap: 18px; }}
-.ficha {{
-  background: var(--papel); border-radius: 20px; padding: 22px;
-  box-shadow: 0 2px 20px #0b0b0c12;
+.conta {{ margin: 0 0 6px; color: var(--tinta-fraca); font-size: 15px; }}
+.dica {{ margin: 0 0 16px; color: var(--tinta-fraca); font-size: 14px; }}
+@media (min-width: 1100px) {{ .dica {{ display: none; }} }}
+
+.moldura {{
+  background: var(--papel); border-radius: 20px; box-shadow: 0 2px 22px #0b0b0c14;
+  overflow: auto; max-height: 78vh;
+  overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
 }}
-.ficha[hidden] {{ display: none; }}
-.ficha h2 {{
-  margin: 0 0 16px; font-size: 22px; line-height: 1.2;
-  padding-bottom: 12px; border-bottom: 2px solid var(--menta);
+table {{ border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }}
+caption {{ position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }}
+th, td {{
+  padding: 14px 18px; text-align: left; vertical-align: top;
+  border-bottom: 1px solid var(--risca); min-width: 260px;
 }}
-dl {{ margin: 0; display: grid; gap: 14px; }}
-.campo {{ display: grid; gap: 3px; }}
-dt {{
+thead th {{
+  position: sticky; top: 0; z-index: 3;
+  background: var(--papel); color: var(--lilas);
   font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--lilas);
+  border-bottom: 2px solid var(--turquesa); white-space: nowrap;
 }}
-dd {{ margin: 0; color: var(--tinta-suave); }}
-@media (min-width: 900px) {{
-  .ficha {{ padding: 26px 30px; }}
-  dl {{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 36px; }}
-  .campo:first-child, .campo:nth-child(3) {{ grid-column: span 1; }}
+tbody th {{
+  position: sticky; left: 0; z-index: 2;
+  background: var(--papel); min-width: 200px; max-width: 230px;
+  font-weight: 700; border-right: 1px solid var(--risca);
 }}
+thead th:first-child {{ z-index: 4; left: 0; }}
+tbody tr:nth-child(even) th, tbody tr:nth-child(even) td {{ background: var(--zebra); }}
+tbody td {{ color: var(--tinta-suave); max-width: 420px; }}
+tbody tr:hover th, tbody tr:hover td {{ background: #EFFBF8; }}
+tr[hidden] {{ display: none; }}
+
+/* No telefone a coluna fixa do nome comia metade da tela e sobrava pouco para o conteúdo. */
+@media (max-width: 700px) {{
+  th, td {{ padding: 12px 14px; min-width: 230px; }}
+  tbody th {{ min-width: 136px; max-width: 150px; }}
+}}
+
 footer {{
-  margin-top: 40px; padding-top: 22px; border-top: 1px solid #0b0b0c1a;
+  margin-top: 28px; padding-top: 20px; border-top: 1px solid #0b0b0c1a;
   color: var(--tinta-fraca); font-size: 14px;
 }}
-footer p {{ margin: 0 0 8px; }}
+footer p {{ margin: 0 0 8px; max-width: 80ch; }}
 @media (prefers-color-scheme: dark) {{
   :root:not([data-theme="light"]) {{
     --papel: #16181C; --tinta: #F2F3F5; --tinta-suave: #C7CAD1; --tinta-fraca: #8E939C;
+    --risca: #272B31; --zebra: #1A1D22;
   }}
   :root:not([data-theme="light"]) body {{
     background: linear-gradient(140deg, #0E1A18, #101A1E 45%, #16142A);
   }}
-  :root:not([data-theme="light"]) .ficha {{ box-shadow: 0 2px 20px #0003; }}
-  :root:not([data-theme="light"]) .ficha h2 {{ border-bottom-color: #2A3D38; }}
+  :root:not([data-theme="light"]) tbody tr:hover th,
+  :root:not([data-theme="light"]) tbody tr:hover td {{ background: #1F2A2B; }}
 }}
 </style>
 </head>
@@ -128,14 +143,21 @@ footer p {{ margin: 0 0 8px; }}
   novembro de 2026.</p>
 </header>
 
-<label class="visually-hidden" for="procura" hidden>Filtrar</label>
 <input id="procura" class="procura" type="search" autocomplete="off"
+       aria-label="Filtrar a tabela"
        placeholder="Filtrar por antibiótico, alvo, organismo…">
 <p class="conta" id="conta"></p>
+<p class="dica">Arraste a tabela para o lado para ver todas as colunas.</p>
 
-<main class="fichas" id="fichas">
-{"".join(cartoes)}
-</main>
+<div class="moldura">
+  <table>
+    <caption>Mecanismos de ação de antibióticos naturais descritos em Lewis et al. (2024)</caption>
+    <thead><tr>{cabecalhos}</tr></thead>
+    <tbody id="corpo">
+{"".join(corpo)}
+    </tbody>
+  </table>
+</div>
 
 <footer>
   <p><strong>Fonte:</strong> LEWIS, K. et al. Sophisticated natural products as antibiotics.
@@ -146,22 +168,22 @@ footer p {{ margin: 0 0 8px; }}
 </div>
 
 <script>
-// Filtro simples: esconde a ficha cujo texto não contém o que foi digitado.
+// Filtro: esconde a linha cujo texto não contém o que foi digitado.
 (function () {{
   var campo = document.getElementById("procura");
-  var fichas = Array.prototype.slice.call(document.querySelectorAll(".ficha"));
+  var linhas = Array.prototype.slice.call(document.querySelectorAll("#corpo tr"));
   var conta = document.getElementById("conta");
   function atualizar() {{
     var termo = campo.value.trim().toLowerCase();
     var vistas = 0;
-    fichas.forEach(function (f) {{
-      var mostra = !termo || f.dataset.busca.indexOf(termo) !== -1;
-      f.hidden = !mostra;
+    linhas.forEach(function (l) {{
+      var mostra = !termo || l.dataset.busca.indexOf(termo) !== -1;
+      l.hidden = !mostra;
       if (mostra) vistas++;
     }});
-    conta.textContent = vistas === fichas.length
-      ? fichas.length + " antibióticos"
-      : vistas + " de " + fichas.length + " antibióticos";
+    conta.textContent = vistas === linhas.length
+      ? linhas.length + " antibióticos"
+      : vistas + " de " + linhas.length + " antibióticos";
   }}
   campo.addEventListener("input", atualizar);
   atualizar();
@@ -173,4 +195,4 @@ footer p {{ margin: 0 0 8px; }}
 
 SAIDA.parent.mkdir(parents=True, exist_ok=True)
 SAIDA.write_text(pagina, encoding="utf-8")
-print(f"{SAIDA} — {len(dados)} antibióticos, {len(campos)} campos, {len(pagina) / 1024:.1f} KB")
+print(f"{SAIDA} — {len(dados)} linhas, {len(cabecalho)} colunas, {len(pagina) / 1024:.1f} KB")
